@@ -34,11 +34,10 @@ func getTestParcel() Parcel {
 func TestAddGetDelete(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
+
 	defer db.Close()
+
 	// создайте объект ParcelStore функцией NewParcelStore
 	store := NewParcelStore(db)
 	parcel := getTestParcel()
@@ -64,7 +63,8 @@ func TestAddGetDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = store.Get(parcel.Number)
-	assert.Equal(t, sql.ErrNoRows, err)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
 
 }
 
@@ -72,10 +72,8 @@ func TestAddGetDelete(t *testing.T) {
 func TestSetAddress(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
+
 	defer db.Close()
 
 	// настройте подключение к БД
@@ -98,7 +96,7 @@ func TestSetAddress(t *testing.T) {
 	// получите добавленную посылку и убедитесь, что адрес обновился
 	p, err := store.Get(parcel.Number)
 	require.NoError(t, err)
-	require.Equal(t, newAddress, p.Address)
+	assert.Equal(t, newAddress, p.Address)
 
 }
 
@@ -106,10 +104,8 @@ func TestSetAddress(t *testing.T) {
 func TestSetStatus(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
+
 	defer db.Close()
 
 	// настройте подключение к БД
@@ -138,10 +134,8 @@ func TestSetStatus(t *testing.T) {
 func TestGetByClient(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
+
 	defer db.Close()
 
 	// настройте подключение к БД
@@ -176,7 +170,7 @@ func TestGetByClient(t *testing.T) {
 	// get by client
 	storedParcels, err := store.GetByClient(client)
 	require.NoError(t, err)
-	require.Equal(t, len(parcelMap), len(storedParcels))
+	assert.Len(t, storedParcels, len(parcelMap))
 	// получите список посылок по идентификатору клиента, сохранённого в переменной client
 	// убедитесь в отсутствии ошибки
 	// убедитесь, что количество полученных посылок совпадает с количеством добавленных
@@ -184,18 +178,9 @@ func TestGetByClient(t *testing.T) {
 	// check
 	for _, parcel := range storedParcels {
 		t.Run(fmt.Sprintf("TestParcel_%d", parcel.Number), func(t *testing.T) {
-			// Проверяем наличие посылки в parcelMap
-			// в parcelMap лежат добавленные посылки, ключ - идентификатор посылки, значение - сама посылка
-			// убедитесь, что все посылки из storedParcels есть в parcelMap
-			// убедитесь, что значения полей полученных посылок заполнены верно
 			parcelFromMap, found := parcelMap[parcel.Number]
-			require.True(t, found)
-
-			// Проверяем совпадение полей
-			assert.Equal(t, parcel.Client, parcelFromMap.Client)
-			assert.Equal(t, parcel.Status, parcelFromMap.Status)
-			assert.Equal(t, parcel.Address, parcelFromMap.Address)
-			assert.Equal(t, parcel.CreatedAt, parcelFromMap.CreatedAt)
+			assert.True(t, found)
+			assert.Equal(t, parcel, parcelFromMap)
 		})
 	}
 }
